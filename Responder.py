@@ -34,6 +34,7 @@ parser.add_option('-e', "--externalip",    action="store",      help="Poison all
 parser.add_option('-b', '--basic',         action="store_true", help="Return a Basic HTTP authentication. Default: NTLM", dest="Basic", default=False)
 parser.add_option('-d', '--DHCP',          action="store_true", help="Enable answers for DHCP broadcast requests. This option will inject a WPAD server in the DHCP response. Default: False", dest="DHCP_On_Off", default=False)
 parser.add_option('-D', '--DHCP-DNS',     action="store_true", help="This option will inject a DNS server in the DHCP response, otherwise a WPAD server will be added. Default: False", dest="DHCP_DNS", default=False)
+parser.add_option('-t', '--monitor_time', action='store', help="This will set a time limit for each server", dest="Time", metavar="SECONDS", default=None, type=float)
 
 parser.add_option('-w','--wpad',           action="store_true", help="Start the WPAD rogue proxy server. Default value is False", dest="WPAD_On_Off", default=False)
 parser.add_option('-u','--upstream-proxy', action="store",      help="Upstream HTTP proxy used by the rogue WPAD Proxy for outgoing requests (format: host:port)", dest="Upstream_Proxy", default=None)
@@ -387,11 +388,15 @@ def main():
 			from poisoners.DHCP import DHCP
 			DHCP(settings.Config.DHCP_DNS)
 
-		while True:
-			time.sleep(1)
+		if options.Time:
+		    time.sleep(options.Time)
+		else:
+		    while True:
+		        time.sleep(1)
 
-	except KeyboardInterrupt:
+	finally:
 		sys.exit("\r%s Exiting..." % color('[+]', 2, 1))
+
 
 if __name__ == '__main__':
 	main()
