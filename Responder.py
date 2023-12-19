@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import optparse
 import ssl
+import traceback
 try:
 	from SocketServer import TCPServer, UDPServer, ThreadingMixIn
 except:
@@ -23,6 +24,7 @@ except:
 from threading import Thread
 from utils import *
 import struct
+from icecream import ic
 banner()
 
 parser = optparse.OptionParser(usage='python %prog -I eth0 -w -d\nor:\npython %prog -I eth0 -wd', version=settings.__version__, prog=sys.argv[0])
@@ -374,6 +376,10 @@ def main():
 			from servers.SNMP import SNMP
 			threads.append(Thread(target=serve_thread_udp, args=('', 161, SNMP,)))
 
+		if settings.Config.DHCP_On_Off:
+			from poisoners.DHCP import DHCP
+			threads.append(Thread(target=start_DHCP()))
+
 		for thread in threads:
 			thread.daemon = True
 			thread.start()
@@ -384,18 +390,30 @@ def main():
 			print(color('[+] Responder is in quiet mode. No NBT-NS, LLMNR, MDNS messages will print to screen.', 3, 1))
 			
 
-		if settings.Config.DHCP_On_Off:
-			from poisoners.DHCP import DHCP
-			DHCP(settings.Config.DHCP_DNS)
+        # thread this
+
 
 		if options.Time:
+		    ic("time")
 		    time.sleep(options.Time)
 		else:
+		    ic("Infinite")
 		    while True:
 		        time.sleep(1)
 
+	except KeyboardInterrupt:
+	    print("KeyboardInterrupt")
+	
+	except Exception:
+	    traceback.print_exc()
+
 	finally:
 		sys.exit("\r%s Exiting..." % color('[+]', 2, 1))
+
+def start_DHCP():
+	if settings.Config.DHCP_On_Off:
+		from poisoners.DHCP import DHCP
+		DHCP(settings.Config.DHCP_DNS)
 
 
 if __name__ == '__main__':
