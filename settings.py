@@ -23,7 +23,7 @@ import subprocess
 
 from utils import *
 
-__version__ = 'Responder 3.1.3.0'
+__version__ = 'Responder 3.1.4.0'
 
 class Settings:
 	
@@ -168,6 +168,9 @@ class Settings:
 		self.ExternalIP6        = options.ExternalIP6
 		self.Quiet_Mode			= options.Quiet
 
+		#Do we have IPv6 for real?
+		self.IPv6 = utils.Probe_IPv6_socket()
+			
 		if self.Interface == "ALL":
 			self.Bind_To_ALL  = True
 		else:
@@ -236,17 +239,21 @@ class Settings:
 		self.HtmlToInject     = config.get('HTTP Server', 'HtmlToInject')
 
 		if len(self.HtmlToInject) == 0:
-			self.HtmlToInject = "<img src='file://///"+self.Bind_To+"/pictures/logo.jpg' alt='Loading' height='1' width='1'>"
+			self.HtmlToInject = ""# Let users set it up themself in Responder.conf. "<img src='file://///"+self.Bind_To+"/pictures/logo.jpg' alt='Loading' height='1' width='1'>"
 
 		if len(self.WPAD_Script) == 0:
-			self.WPAD_Script = 'function FindProxyForURL(url, host){if ((host == "localhost") || shExpMatch(host, "localhost.*") ||(host == "127.0.0.1") || isPlainHostName(host)) return "DIRECT"; return "PROXY '+self.Bind_To+':3128; PROXY '+self.Bind_To+':3141; DIRECT";}'
+			if self.WPAD_On_Off:
+				self.WPAD_Script = 'function FindProxyForURL(url, host){if ((host == "localhost") || shExpMatch(host, "localhost.*") ||(host == "127.0.0.1") || isPlainHostName(host)) return "DIRECT"; return "PROXY '+self.Bind_To+':3128; DIRECT";}'
+				
+			if self.ProxyAuth_On_Off:
+				self.WPAD_Script = 'function FindProxyForURL(url, host){if ((host == "localhost") || shExpMatch(host, "localhost.*") ||(host == "127.0.0.1") || isPlainHostName(host)) return "DIRECT"; return "PROXY '+self.Bind_To+':3128; DIRECT";}'
 
 		if self.Serve_Exe == True:	
 			if not os.path.exists(self.Html_Filename):
-				print(utils.color("/!\ Warning: %s: file not found" % self.Html_Filename, 3, 1))
+				print(utils.color("/!\\ Warning: %s: file not found" % self.Html_Filename, 3, 1))
 
 			if not os.path.exists(self.Exe_Filename):
-				print(utils.color("/!\ Warning: %s: file not found" % self.Exe_Filename, 3, 1))
+				print(utils.color("/!\\ Warning: %s: file not found" % self.Exe_Filename, 3, 1))
 
 		# SSL Options
 		self.SSLKey  = config.get('HTTPS Server', 'SSLKey')
@@ -328,10 +335,12 @@ class Settings:
 				NetworkCard = "Error fetching Network Interfaces:", ex
 				pass
 		try:
-			DNS = subprocess.check_output(["cat", "/etc/resolv.conf"])
-		except subprocess.CalledProcessError as ex:
-			DNS = "Error fetching DNS configuration:", ex
-			pass
+			p = subprocess.Popen('resolvectl', stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+			DNS = p.stdout.read()
+		except:
+			p = subprocess.Popen(['cat', '/etc/resolv.conf'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+			DNS = p.stdout.read()
+
 		try:
 			RoutingInfo = subprocess.check_output(["netstat", "-rn"])
 		except:
@@ -344,7 +353,7 @@ class Settings:
 		Message = "%s\nCurrent environment is:\nNetwork Config:\n%s\nDNS Settings:\n%s\nRouting info:\n%s\n\n"%(utils.HTTPCurrentDate(), NetworkCard.decode('latin-1'),DNS.decode('latin-1'),RoutingInfo.decode('latin-1'))
 		try:
 			utils.DumpConfig(self.ResponderConfigDump, Message)
-			utils.DumpConfig(self.ResponderConfigDump,str(self))
+			#utils.DumpConfig(self.ResponderConfigDump,str(self))
 		except AttributeError as ex:
 			print("Missing Module:", ex)
 			pass
