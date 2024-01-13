@@ -405,7 +405,7 @@ def main():
 
 		if settings.Config.DHCP_On_Off:
 			from poisoners.DHCP import DHCP
-			threads.append(Thread(target=start_DHCP()))
+			threads.append(Thread(target=start_DHCP))
 
 		for thread in threads:
 			thread.daemon = True
@@ -421,10 +421,8 @@ def main():
 
 
 		if options.Time:
-		    ic("time")
 		    time.sleep(options.Time)
 		else:
-		    ic("Infinite")
 		    while True:
 		        time.sleep(1)
 
